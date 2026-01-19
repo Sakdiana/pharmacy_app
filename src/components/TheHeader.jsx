@@ -132,7 +132,7 @@ const TheHeader = () => {
                 Корзина
               </p>
               {hasItemsInCart && (
-                <span className="absolute top-10 right-[119px] bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                <span className="absolute top-10 right-[200px] bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
                   !
                 </span>
               )}
