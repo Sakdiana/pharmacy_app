@@ -1,18 +1,12 @@
-import React from "react";
-
-const Section1 = () => {
+export default function Section1() {
   return (
-    <div className="section1__items ">
+    <section className="section1__items" aria-label="Приветствие">
       <div className="container">
-        <div className="">
-          <h1 className="pt-52 px-9 text-4xl font-bold text-center max-w-[950px] w-full mx-auto max-sm:text-2xl max-[330px]:text-xl">
-            Добро пожаловать в нашу онлайн-аптеку. Здесь вы найдёте всё
-            необходимое для здоровья и ухода за собой.
-          </h1>
-        </div>
+        <h1 className="pt-52 pb-16 px-9 text-4xl font-bold text-center max-w-[950px] w-full mx-auto text-white drop-shadow-md max-sm:text-2xl max-[330px]:text-xl">
+          Добро пожаловать в нашу онлайн-аптеку. Здесь вы найдёте всё необходимое
+          для здоровья и ухода за собой.
+        </h1>
       </div>
-    </div>
+    </section>
   );
-};
-
-export default Section1;
+}

@@ -1,82 +1,70 @@
-import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getCartCount, getFavorites } from "../utils/storage";
+import { isAdminLoggedIn } from "../utils/adminAuth";
 
-export default function Menu({ handleOpen }) {
-  const [userExist, setUserExist] = useState(false);
-
-  useEffect(() => {
-    const user = localStorage.getItem("currentUser");
-    if (user) {
-      setUserExist(true);
-    }
-  }, []);
+export default function Menu({ handleOpen, user }) {
+  const favoritesCount = getFavorites().length;
+  const cartCount = getCartCount();
+  const admin = isAdminLoggedIn();
 
   return (
-    <div>
-      <div className="fixed top-0 left-0 right-0 bottom-0   z-50 flex justify-center bg-black bg-opacity-50 backdrop-blur-sm  items-center min-h-screen h-full">
-        <div
-          className="bg-white p-6 rounded-xl shadow-lg w-4/5 md:w-1/2 relative"
-          onClick={(e) => e.stopPropagation()}
+    <div
+      className="fixed inset-0 z-50 flex justify-center items-center bg-black/50 backdrop-blur-sm"
+      onClick={handleOpen}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Мобильное меню"
+    >
+      <div
+        className="bg-white p-6 rounded-xl shadow-lg w-4/5 md:w-1/2 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={handleOpen}
+          className="absolute top-3 right-3 text-xl text-[#144F24]"
+          aria-label="Закрыть меню"
         >
-          <button
-            onClick={handleOpen}
-            className="absolute top-3 right-3 text-xl text-[#144F24]"
-          >
-            ✕
-          </button>
+          ✕
+        </button>
 
-          <ul className="flex flex-col items-center space-y-4">
-            <li>
-              <Link
-                onClick={handleOpen}
-                to="/"
-                className="text-[#144F24] font-medium hover:text-[#30B856]"
-              >
-                На главное
+        <ul className="flex flex-col items-center space-y-4 pt-4">
+          <li>
+            <Link onClick={handleOpen} to="/" className="nav-link">
+              На главную
+            </Link>
+          </li>
+          <li>
+            <Link onClick={handleOpen} to="/liked" className="nav-link">
+              Избранное {favoritesCount > 0 && `(${favoritesCount})`}
+            </Link>
+          </li>
+          <li>
+            <Link onClick={handleOpen} to="/cart" className="nav-link">
+              Корзина {cartCount > 0 && `(${cartCount})`}
+            </Link>
+          </li>
+          <li>
+            {user ? (
+              <Link onClick={handleOpen} to="/userPage" className="nav-link">
+                {user.name}
               </Link>
-            </li>
-            <li>
-              <Link
-                onClick={handleOpen}
-                to="/liked"
-                className="text-[#144F24] font-medium hover:text-[#30B856]"
-              >
-                Избранное
-              </Link>
-            </li>
-            <li>
-              <Link
-                onClick={handleOpen}
-                to="/cart"
-                className="text-[#144F24] font-medium hover:text-[#30B856]"
-              >
-                Корзина
-              </Link>
-            </li>
-
-            {userExist ? (
-              <li>
-                <Link
-                  onClick={handleOpen}
-                  to="/userPage"
-                  className="text-[#144F24] font-medium hover:text-[#30B856]"
-                >
-                  Ваша страница
-                </Link>
-              </li>
             ) : (
-              <li>
-                <Link
-                  onClick={handleOpen}
-                  to="/login"
-                  className="text-[#144F24] font-medium hover:text-[#30B856]"
-                >
-                  Войти
-                </Link>
-              </li>
+              <Link onClick={handleOpen} to="/login" className="nav-link">
+                Войти
+              </Link>
             )}
-          </ul>
-        </div>
+          </li>
+          <li>
+            <Link
+              onClick={handleOpen}
+              to={admin ? "/admin" : "/admin/login"}
+              className="nav-link text-gray-500"
+            >
+              {admin ? "Админ-панель" : "Админ"}
+            </Link>
+          </li>
+        </ul>
       </div>
     </div>
   );

@@ -1,175 +1,146 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Menu from "./Menu";
-import SearchResults from "./SearchResults";
+import { getCartCount, getCurrentUser, getFavorites } from "../utils/storage";
 
-const TheHeader = () => {
+export default function TheHeader() {
   const [isOpen, setIsOpen] = useState(false);
-  const [hasFavorites, setHasFavorites] = useState(false);
-  const [hasItemsInCart, setHasItemsInCart] = useState(false);
-  const [userExist, setUserExist] = useState(false);
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
+  const [user, setUser] = useState(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [searchInput, setSearchInput] = useState("");
+  const [searchInput, setSearchInput] = useState(
+    () => searchParams.get("search") || ""
+  );
 
-  const isUserExist = () => {
-    const user = localStorage.getItem("currentUser");
-    return user ? JSON.parse(user) : null;
-  };
-
-  const handleOpen = () => {
-    setIsOpen((prev) => !prev);
-  };
-
-  const updateFavorites = () => {
-    const favoritePills = JSON.parse(localStorage.getItem("favorites")) || [];
-    setHasFavorites(favoritePills.length > 0);
-  };
-
-  const updateCart = () => {
-    const cartItems = JSON.parse(localStorage.getItem("cart")) || [];
-    setHasItemsInCart(cartItems.length > 0);
+  const refreshCounts = () => {
+    setFavoritesCount(getFavorites().length);
+    setCartCount(getCartCount());
+    setUser(getCurrentUser());
   };
 
   useEffect(() => {
-    const currentUser = isUserExist();
-    setUserExist(currentUser);
-    updateFavorites();
-    updateCart();
+    refreshCounts();
 
-    window.addEventListener("favoritesChanged", updateFavorites);
-    window.addEventListener("cartChanged", updateCart);
+    window.addEventListener("favoritesChanged", refreshCounts);
+    window.addEventListener("cartChanged", refreshCounts);
+    window.addEventListener("userChanged", refreshCounts);
 
     return () => {
-      window.removeEventListener("favoritesChanged", updateFavorites);
-      window.removeEventListener("cartChanged", updateCart);
+      window.removeEventListener("favoritesChanged", refreshCounts);
+      window.removeEventListener("cartChanged", refreshCounts);
+      window.removeEventListener("userChanged", refreshCounts);
     };
   }, []);
 
-  const toggleFavorite = (pill) => {
-    let favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+  useEffect(() => {
+    setSearchInput(searchParams.get("search") || "");
+  }, [searchParams]);
 
-    if (favorites.some((fav) => fav.id === pill.id)) {
-      favorites = favorites.filter((fav) => fav.id !== pill.id);
-    } else {
-      favorites.push(pill);
+  const handleOpen = () => setIsOpen((prev) => !prev);
+
+  const runSearch = () => {
+    const value = searchInput.trim();
+    if (!value) {
+      setSearchParams({});
+      navigate("/");
+      return;
     }
-    localStorage.setItem("favorites", JSON.stringify(favorites));
-    window.dispatchEvent(new Event("favoritesChanged"));
+    setSearchParams({ search: value });
+    navigate(`/?search=${encodeURIComponent(value)}`);
   };
 
   return (
-    <header className="shadow-md">
+    <header className="shadow-md bg-white sticky top-0 z-40">
       <div className="container">
-        <div className="headerItems flex items-center justify-between py-12 max-sm:flex-wrap">
-          <Link to={"/"} className="logo">
-            <img src="/svg/logo.png" alt="" />
+        <div className="headerItems flex items-center justify-between py-6 gap-4 max-sm:flex-wrap">
+          <Link to="/" className="logo flex items-center gap-2 shrink-0">
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-mainColor text-white font-bold text-lg"
+              aria-hidden="true"
+            >
+              +
+            </span>
+            <span className="text-xl font-bold text-[#144F24]">Аптека</span>
           </Link>
 
-          <div className="input__search w-[60%] flex items-center gap-3 border border-mainColor rounded-xl px-8 py-3 max-md:py-1">
+          <div className="input__search flex-1 flex items-center gap-3 border border-mainColor rounded-xl px-4 py-2 min-w-0">
             <input
-              className="w-full outline-none"
-              type="text"
-              placeholder="Поиск"
+              className="w-full outline-none text-sm"
+              type="search"
+              placeholder="Поиск лекарств..."
               value={searchInput}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchInput(value);
-
-                if (value.trim() === "") {
-                  setSearchParams({});
-                  navigate("/");
-                }
-              }}
+              onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  if (searchInput.trim()) {
-                    setSearchParams({ search: searchInput.trim() });
-                    navigate(
-                      `/?search=${encodeURIComponent(searchInput.trim())}`
-                    );
-                  }
-                }
+                if (e.key === "Enter") runSearch();
               }}
+              aria-label="Поиск"
             />
-
-            <img
-              src="/svg/search.svg"
-              alt=""
-              className="cursor-pointer"
-              onClick={() => {
-                if (searchInput.trim()) {
-                  setSearchParams({ search: searchInput.trim() });
-                  navigate(
-                    `/?search=${encodeURIComponent(searchInput.trim())}`
-                  );
-                }
-              }}
-            />
+            <button type="button" onClick={runSearch} aria-label="Искать">
+              <img src="/svg/search.svg" alt="" width={22} height={22} />
+            </button>
           </div>
 
-          <div className="icons flex items-center gap-10 max-[1029px]:hidden">
-            <Link
-              to={"/liked"}
-              className="liked flex flex-col items-center gap-1"
-            >
+          <nav className="icons flex items-center gap-8 max-[1029px]:hidden" aria-label="Основное меню">
+            <Link to="/liked" className="relative flex flex-col items-center gap-1">
               <img
-                src={hasFavorites ? "/svg/likedRed.svg" : "/svg/liked.svg"}
-                alt="Favorites"
+                src={favoritesCount > 0 ? "/svg/likedRed.svg" : "/svg/liked.svg"}
+                alt=""
+                width={28}
+                height={28}
               />
-              <p className="font-medium text-md hover:text-mainColor">
-                Избранное
-              </p>
-            </Link>
-
-            <Link
-              to={"/cart"}
-              className="liked flex flex-col items-center gap-1"
-            >
-              <img src="/svg/cart.svg" alt="" />
-              <p className="font-medium text-md hover:text-mainColor">
-                Корзина
-              </p>
-              {hasItemsInCart && (
-                <span className="absolute top-10 right-[200px] bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  !
+              <span className="font-medium text-sm hover:text-mainColor">Избранное</span>
+              {favoritesCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {favoritesCount}
                 </span>
               )}
             </Link>
 
-            {userExist ? (
-              <Link
-                to={"/userPage"}
-                className="liked flex flex-col items-center gap-1"
-              >
-                <img src="/svg/login.svg" alt="" />
-                <p className="font-medium text-black text-md hover:text-mainColor">
-                  {userExist.name}
-                </p>
+            <Link to="/cart" className="relative flex flex-col items-center gap-1">
+              <img src="/svg/cart.svg" alt="" width={28} height={28} />
+              <span className="font-medium text-sm hover:text-mainColor">Корзина</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            {user ? (
+              <Link to="/userPage" className="flex flex-col items-center gap-1 max-w-[100px]">
+                <img src="/svg/login.svg" alt="" width={28} height={28} />
+                <span className="font-medium text-sm text-black hover:text-mainColor truncate w-full text-center">
+                  {user.name}
+                </span>
               </Link>
             ) : (
-              <Link
-                to={"/login"}
-                className="liked flex flex-col items-center gap-1"
-              >
-                <img src="/svg/login.svg" alt="" />
-                <p className="font-medium text-md hover:text-mainColor">
-                  Войти
-                </p>
+              <Link to="/login" className="flex flex-col items-center gap-1">
+                <img src="/svg/login.svg" alt="" width={28} height={28} />
+                <span className="font-medium text-sm hover:text-mainColor">Войти</span>
               </Link>
             )}
-          </div>
+          </nav>
 
-          <div onClick={handleOpen} className="menu hidden max-[1029px]:block">
-            <img className="w-10" src="/svg/menu.png" alt="" />
-          </div>
+          <button
+            type="button"
+            onClick={handleOpen}
+            className="menu hidden max-[1029px]:block p-2"
+            aria-label="Открыть меню"
+            aria-expanded={isOpen}
+          >
+            <span className="flex flex-col gap-1.5 w-7">
+              <span className="h-0.5 w-full bg-[#144F24] rounded" />
+              <span className="h-0.5 w-full bg-[#144F24] rounded" />
+              <span className="h-0.5 w-full bg-[#144F24] rounded" />
+            </span>
+          </button>
         </div>
       </div>
 
-      {isOpen && <Menu handleOpen={handleOpen} />}
+      {isOpen && <Menu handleOpen={handleOpen} user={user} />}
     </header>
   );
-};
-
-export default TheHeader;
+}

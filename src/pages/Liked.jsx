@@ -1,106 +1,103 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import BackButton from "../components/BackButton";
+import EmptyState from "../components/EmptyState";
+import { useToast } from "../hooks/useToast";
+import { formatPrice } from "../utils/format";
+import {
+  getFavorites,
+  mergeItemsIntoCart,
+  saveFavorites,
+} from "../utils/storage";
 
 export default function Liked() {
-  const navigate = useNavigate();
+  const { showToast } = useToast();
   const [favorites, setFavorites] = useState([]);
 
+  const loadFavorites = () => setFavorites(getFavorites());
+
   useEffect(() => {
-    const storedFavorites = JSON.parse(localStorage.getItem("favorites")) || [];
-    setFavorites(storedFavorites);
+    loadFavorites();
+    window.addEventListener("favoritesChanged", loadFavorites);
+    return () => window.removeEventListener("favoritesChanged", loadFavorites);
   }, []);
 
   const handleRemoveFavorite = (id) => {
-    const updateFavorites = favorites.filter((pill) => pill.id !== id);
-    localStorage.setItem("favorites", JSON.stringify(updateFavorites));
-    setFavorites(updateFavorites);
-  
-    window.dispatchEvent(new Event("favoritesChanged"));
+    const next = favorites.filter((pill) => pill.id !== id);
+    saveFavorites(next);
+    setFavorites(next);
+    showToast("Удалено из избранного");
   };
-  
 
   const handleMoveToCart = () => {
-    const currentCart = JSON.parse(localStorage.getItem("cart")) || [];
-  
-    const updatedCart = [...currentCart, ...favorites];
-  
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
-    localStorage.setItem("favorites", JSON.stringify([]));
+    if (favorites.length === 0) return;
+    mergeItemsIntoCart(favorites);
+    saveFavorites([]);
     setFavorites([]);
-  
-    window.dispatchEvent(new Event("favoritesChanged"));
-    window.dispatchEvent(new Event("cartChanged"));
+    showToast("Все товары добавлены в корзину");
   };
-  
 
   return (
     <div className="bg-[#F9F9F9] py-10 min-h-screen">
       <div className="container">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[#30B856] font-medium hover:underline mb-6"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="#30B856"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Назад
-        </button>
+        <BackButton />
 
         <h1 className="text-3xl font-bold text-[#144F24] mb-6 text-center">
-          Избранные
+          Избранное
         </h1>
 
         {favorites.length === 0 ? (
-          <div className="bg-white shadow-md rounded-xl p-6 flex flex-col items-center justify-center text-center">
-            <p className="text-[#144F24] text-lg font-medium">
-              Ваша корзина пуста
-            </p>
-            <p className="text-gray-500 text-sm mt-2 max-w-md">
-              Добавляйте товары в корзину, чтобы оформить заказ позже
-            </p>
-          </div>
+          <EmptyState
+            title="Список избранного пуст"
+            description="Нажимайте на сердечко у товаров, чтобы сохранить их здесь"
+            action={
+              <Link
+                to="/"
+                className="mt-6 inline-block bg-mainColor text-white py-2 px-6 rounded-full font-medium hover:bg-[#248c41]"
+              >
+                В каталог
+              </Link>
+            }
+          />
         ) : (
-          <div className="mt-10">
+          <div className="mt-6 max-w-3xl mx-auto">
             {favorites.map((pill) => (
-              <div
+              <article
                 key={pill.id}
-                className="bg-white shadow-md rounded-xl p-6 mb-6 flex items-center gap-4"
+                className="bg-white shadow-md rounded-xl p-6 mb-4 flex items-center gap-4"
               >
                 <img
-                  className="w-20 h-20 object-cover"
+                  className="w-20 h-20 object-contain shrink-0"
                   src={pill.image}
                   alt={pill.name}
+                  loading="lazy"
                 />
-                <div>
-                  <h3 className="text-lg font-medium text-[#144F24]">
+                <div className="flex-1 min-w-0">
+                  <Link
+                    to={`/product/${pill.id}`}
+                    className="text-lg font-medium text-[#144F24] truncate block hover:text-mainColor"
+                  >
                     {pill.name}
-                  </h3>
-                  <p className="text-sm text-gray-500">Цена: {pill.price}</p>
-                  <p className="text-sm text-gray-500">
-                    Производитель: {pill.manufacturer}
-                  </p>
+                  </Link>
+                  <p className="text-sm text-gray-500">{formatPrice(pill.price)}</p>
+                  <p className="text-sm text-gray-500">{pill.manufacturer}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleRemoveFavorite(pill.id)}
-                  className="text-black font-bold text-xl ml-auto"
+                  className="text-gray-400 hover:text-red-500 text-xl shrink-0"
+                  aria-label="Удалить из избранного"
                 >
                   ✖
                 </button>
-              </div>
+              </article>
             ))}
-            <button onClick={handleMoveToCart} className="bg-[#30B856] text-white py-2 px-4 rounded-full mt-6">
-              В корзину
+            <button
+              type="button"
+              onClick={handleMoveToCart}
+              className="w-full bg-mainColor text-white py-3 rounded-full font-medium hover:bg-[#248c41] transition-colors"
+            >
+              Добавить всё в корзину
             </button>
           </div>
         )}

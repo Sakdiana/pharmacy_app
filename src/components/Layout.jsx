@@ -1,18 +1,15 @@
-import React from "react";
 import { Outlet } from "react-router-dom";
 import TheHeader from "./TheHeader";
-import Footer from "./Footer"; // если есть
+import Footer from "./Footer";
 
-const Layout = () => {
+export default function Layout() {
   return (
-    <>
+    <div className="flex min-h-screen flex-col">
       <TheHeader />
-      <main className="min-h-screen">
+      <main className="flex-1">
         <Outlet />
       </main>
       <Footer />
-    </>
+    </div>
   );
-};
-
-export default Layout;
+}

@@ -1,28 +1,27 @@
-import React, { useEffect, useState } from "react";
-import Card from './Card'
+import { useProducts } from "../hooks/useProducts";
+import LoadingSpinner from "./LoadingSpinner";
+import ProductGrid from "./ProductGrid";
 
+export default function Cards() {
+  const { products, loading, error } = useProducts();
 
-const Cards = () => {
-  const [pills, setPills] = useState([]);
-
-  useEffect(() => {
-    fetch("/data/products.json")
-      .then((res) => res.json())
-      .then((data) => setPills(data))
-      .catch((err) => console.error("ошибка"));
-  }, []);
+  if (loading) return <LoadingSpinner label="Загружаем каталог..." />;
+  if (error) {
+    return (
+      <p className="text-red-500 text-center py-12" role="alert">
+        {error}
+      </p>
+    );
+  }
 
   return (
-    <section>
+    <section aria-label="Каталог товаров">
       <div className="container">
-        <div className="cards__items flex items-center justify-around gap-3 flex-wrap">
-          {pills.map((pill) => (
-            <Card key={pill.id} pill={pill} /> 
-          ))}
-        </div>
+        <h2 className="text-2xl font-bold text-[#144F24] mb-8 text-center">
+          Популярные товары
+        </h2>
+        <ProductGrid products={products} />
       </div>
     </section>
   );
-};
-
-export default Cards;
+}

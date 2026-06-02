@@ -1,81 +1,102 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import BackButton from "../components/BackButton";
+import { formatPrice } from "../utils/format";
+import { getCurrentUser, setCurrentUser } from "../utils/storage";
 
 export default function UserPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const stored = getCurrentUser();
+    setUser(stored);
+
+    const onUserChange = () => setUser(getCurrentUser());
+    window.addEventListener("userChanged", onUserChange);
+    return () => window.removeEventListener("userChanged", onUserChange);
   }, []);
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    navigate("/");
+  };
 
   if (!user) {
     return (
-      <div className="text-center mt-10 text-gray-500">
-        Пользователь не найден. Пожалуйста, войдите в аккаунт.
+      <div className="bg-[#F9F9F9] py-10 min-h-screen">
+        <div className="container text-center">
+          <p className="text-gray-500 mb-4">
+            Вы не авторизованы. Войдите в аккаунт.
+          </p>
+          <Link
+            to="/login"
+            className="inline-block bg-mainColor text-white py-2 px-6 rounded-full"
+          >
+            Войти
+          </Link>
+        </div>
       </div>
     );
   }
 
+  const purchases = user.purchases || [];
+
   return (
     <div className="bg-[#F9F9F9] py-10 min-h-screen">
       <div className="container">
-      <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-[#30B856] font-medium hover:underline mb-6"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="#30B856"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Назад
-        </button>
-        <div className="max-w-xl mx-auto mt-10 p-6 border rounded-2xl shadow-md">
-          <h1 className="text-2xl font-bold mb-6" style={{ color: "#30B856" }}>
-            Профиль пользователя
-          </h1>
+        <BackButton />
 
-          <div className="mb-4">
-            <span className="font-semibold">Email:</span>{" "}
-            <span>{user.email}</span>
+        <div className="max-w-xl mx-auto mt-4 p-6 bg-white border rounded-2xl shadow-md">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <h1 className="text-2xl font-bold text-mainColor">
+              Профиль
+            </h1>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm text-red-500 hover:underline shrink-0"
+            >
+              Выйти
+            </button>
           </div>
 
-          <div className="mb-6">
-            <span className="font-semibold">Пароль:</span>{" "}
-            <span>{user.password}</span>
-          </div>
+          <dl className="space-y-3 mb-8">
+            <div>
+              <dt className="text-sm text-gray-500">Имя</dt>
+              <dd className="font-medium text-[#144F24]">{user.name}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-gray-500">Email</dt>
+              <dd className="font-medium">{user.email}</dd>
+            </div>
+          </dl>
 
-          {user.purchases && user.purchases.length > 0 ? (
-            <>
-              <h2
-                className="text-xl font-semibold mb-3"
-                style={{ color: "#30B856" }}
-              >
-                Купленные товары
-              </h2>
-              <ul className="list-disc list-inside space-y-2">
-                {user.purchases.map((item, index) => (
-                  <li key={index}>
-                    {item.name} — {item.count} шт. ({item.price})
-                  </li>
-                ))}
-              </ul>
-            </>
+          <h2 className="text-xl font-semibold text-mainColor mb-4">
+            История заказов
+          </h2>
+
+          {purchases.length > 0 ? (
+            <ul className="space-y-3">
+              {purchases.map((item, index) => (
+                <li
+                  key={`${item.id}-${index}`}
+                  className="flex justify-between gap-4 border-b border-gray-100 pb-3 text-sm"
+                >
+                  <span className="font-medium text-[#144F24]">{item.name}</span>
+                  <span className="text-gray-600 shrink-0">
+                    {item.count ?? 1} шт. · {formatPrice(item.price * (item.count ?? 1))}
+                  </span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p>Пока нет покупок</p>
+            <p className="text-gray-500 text-sm">
+              Пока нет заказов.{" "}
+              <Link to="/" className="text-mainColor hover:underline">
+                Перейти в каталог
+              </Link>
+            </p>
           )}
         </div>
       </div>
